@@ -5,8 +5,6 @@ defmodule RuntimeCheckTest do
   defmodule Checks do
     use RuntimeCheck
 
-    alias RuntimeCheck.Check
-
     @impl true
     def run? do
       true
@@ -15,13 +13,10 @@ defmodule RuntimeCheckTest do
     @impl true
     def checks do
       [
-        %Check{
-          name: :test,
-          checker: fn ->
-            send(self(), :ran_check)
-            :ok
-          end
-        }
+        check(:test, fn ->
+          send(self(), :ran_check)
+          :ok
+        end)
       ]
     end
   end

@@ -14,6 +14,8 @@ defmodule RuntimeCheck do
     quote do
       use GenServer
 
+      import RuntimeCheck.DSL
+
       @behaviour RuntimeCheck
 
       @doc """
