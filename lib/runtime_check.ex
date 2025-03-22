@@ -32,6 +32,7 @@ defmodule RuntimeCheck do
         RuntimeCheck.init(__MODULE__)
       end
 
+      @spec run() :: {:ok, map()} | {:error, map()}
       def run do
         RuntimeCheck.run(__MODULE__)
       end
@@ -45,8 +46,8 @@ defmodule RuntimeCheck do
   def init(module) do
     if module.run?() do
       case run(module) do
-        :ok -> :ignore
-        {:error, reason} -> {:stop, reason}
+        {:ok, _} -> :ignore
+        {:error, _reasons} -> {:stop, :runtime_check_failed}
       end
     else
       :ignore
@@ -56,22 +57,39 @@ defmodule RuntimeCheck do
   @doc """
   Runs the checks in the module.
 
-  Returns `:ok` when the checks pass, `{:error, :runtime_check_failed}` when they fail.
+  Returns `{:ok, ignored_map}` if checks pass. `ignored_map` is a a nested map of checks that
+  were ignored. Like `%{check1: :ignored, check2: %{subcheck1: :ignored}}`. The map is empty if
+  no checks are ignored.
 
-  Use the module directly when starting in a supervisor tree.
+  If at least one check fails, `{:error, map}` is returned. Where `map` is a nested map with
+  ignored and failed checks like
+
+  ```
+  %{
+    check1: :ignored,
+    check2: "failure reason",
+    check3: %{
+      subcheck1: :ignored,
+      subcheck2: "another reason"
+    }
+  }
+  ```
+
+  Use the module directly when starting in a supervisor tree. See the moduledocs for
+  `RuntimeCheck`.
   """
-  @spec run(module()) :: :ok | {:error, :runtime_check_failed}
+  @spec run(module()) :: {:ok, map()} | {:error, map()}
   def run(module) do
     Logger.info("RuntimeCheck] starting...")
 
     case Check.run(module.checks(), 0, true) do
-      :ok ->
+      {:ok, _} = res ->
         Logger.info("[RuntimeCheck] done")
-        :ok
+        res
 
-      :error ->
+      {:error, _} = res ->
         Logger.error("[RuntimeCheck] some checks failed!")
-        {:error, :runtime_check_failed}
+        res
     end
   end
 end

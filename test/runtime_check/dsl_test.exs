@@ -24,16 +24,17 @@ defmodule RuntimeCheck.DSLTest do
 
   describe "check/2" do
     test "with a function succeeds" do
-      assert Check.run(check(:a_check, &ok_check/0)) == :ok
+      assert Check.run(check(:a_check, &ok_check/0)) == {:ok, %{}}
       assert_received :ran_check
     end
 
     test "with a function fails" do
-      assert Check.run(check(:a_check, &error_check/0)) == :error
+      assert Check.run(check(:a_check, &error_check/0)) == {:error, "Oops!"}
     end
 
     test "with an exception function fails" do
-      assert Check.run(check(:a_check, fn -> raise "Oops!" end)) == :error
+      assert {:error, {:error, %RuntimeError{message: "Oops!"}, _}} =
+               Check.run(check(:a_check, fn -> raise "Oops!" end))
     end
 
     test "with a list of checks succeeds" do
@@ -43,7 +44,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_subcheck1
       assert_received :ran_subcheck2
     end
@@ -55,7 +56,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :error
+      assert Check.run(check) == {:error, %{subcheck: "Oops!"}}
       assert_received :ran_subcheck2
     end
   end
@@ -68,7 +69,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_check
       assert_received :ran_subcheck1
       assert_received :ran_subcheck2
@@ -81,7 +82,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
       refute_received :ran_subcheck1
       refute_received :ran_subcheck2
     end
@@ -93,7 +94,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :error
+      assert Check.run(check) == {:error, "Oops!"}
       refute_received :ran_subcheck1
       refute_received :ran_subcheck2
     end
@@ -105,7 +106,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &error_check/0)
         ])
 
-      assert Check.run(check) == :error
+      assert Check.run(check) == {:error, %{subcheck2: "Oops!"}}
       assert_received :ran_check
       assert_received :ran_subcheck1
     end
@@ -120,27 +121,27 @@ defmodule RuntimeCheck.DSLTest do
     test "with a function succeeds" do
       check = feature_check(:enabled_flag, &ok_check/0)
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_check
     end
 
     test "with a function fails" do
       check = feature_check(:enabled_flag, &error_check/0)
 
-      assert Check.run(check) == :error
+      assert Check.run(check) == {:error, "Oops!"}
     end
 
     test "with a function and a disabled flag ignores the check" do
       check = feature_check(:disabled_flag, &ok_check/0)
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
       refute_received :ran_check
     end
 
     test "with an error function and a disabled flag ignores the check" do
       check = feature_check(:disabled_flag, &error_check/0)
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
     end
 
     test "with a list of checks succeeds" do
@@ -150,7 +151,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_subcheck1
       assert_received :ran_subcheck2
     end
@@ -162,7 +163,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :error
+      assert Check.run(check) == {:error, %{subcheck: "Oops!"}}
       assert_received :ran_subcheck2
     end
 
@@ -173,7 +174,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
       refute_received :ran_subcheck1
       refute_received :ran_subcheck2
     end
@@ -184,7 +185,7 @@ defmodule RuntimeCheck.DSLTest do
 
       check = feature_check(:enabled_flag_by_actor, &ok_check/0)
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_check
     end
   end
@@ -202,7 +203,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, %{}}
       assert_received :ran_check
       assert_received :ran_subcheck1
       assert_received :ran_subcheck2
@@ -215,7 +216,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
       refute_received :ran_check
       refute_received :ran_subcheck1
       refute_received :ran_subcheck2
@@ -228,7 +229,7 @@ defmodule RuntimeCheck.DSLTest do
           check(:subcheck2, &ok_subcheck2/0)
         ])
 
-      assert Check.run(check) == :ok
+      assert Check.run(check) == {:ok, :ignored}
       refute_received :ran_subcheck1
       refute_received :ran_subcheck2
     end
@@ -241,19 +242,20 @@ defmodule RuntimeCheck.DSLTest do
     end
 
     test "succeeds when the var exists" do
-      assert Check.run(env_var("EXISTING_VAR")) == :ok
+      assert Check.run(env_var("EXISTING_VAR")) == {:ok, %{}}
     end
 
     test "fails when the var doesn't exist" do
-      assert Check.run(env_var("NON_EXISTENT_VAR")) == :error
+      assert Check.run(env_var("NON_EXISTENT_VAR")) ==
+               {:error, "Env var NON_EXISTENT_VAR is missing"}
     end
 
     test "fails when the var is empty" do
-      assert Check.run(env_var("EMPTY_VAR")) == :error
+      assert Check.run(env_var("EMPTY_VAR")) == {:error, "Env var EMPTY_VAR is empty"}
     end
 
     test "succeeds when the var is empty and allow_empty is true" do
-      assert Check.run(env_var("EMPTY_VAR", allow_empty: true)) == :ok
+      assert Check.run(env_var("EMPTY_VAR", allow_empty: true)) == {:ok, %{}}
     end
   end
 
@@ -270,44 +272,49 @@ defmodule RuntimeCheck.DSLTest do
     end
 
     test "succeeds when the key exists" do
-      assert Check.run(app_var(:a_check, :runtime_check, :existing_key)) == :ok
+      assert Check.run(app_var(:a_check, :runtime_check, :existing_key)) == {:ok, %{}}
     end
 
     test "succeeds when the keys exist" do
-      assert Check.run(app_var(:a_check, :runtime_check, [:keys, :subkey])) == :ok
+      assert Check.run(app_var(:a_check, :runtime_check, [:keys, :subkey])) == {:ok, %{}}
     end
 
     test "succeeds when the value is empty" do
-      assert Check.run(app_var(:a_check, :runtime_check, :empty_key)) == :ok
+      assert Check.run(app_var(:a_check, :runtime_check, :empty_key)) == {:ok, %{}}
     end
 
     test "succeeds when the value is empty with keys" do
-      assert Check.run(app_var(:a_check, :runtime_check, [:empty_key_path, :key])) == :ok
+      assert Check.run(app_var(:a_check, :runtime_check, [:empty_key_path, :key])) == {:ok, %{}}
     end
 
     test "fails when the key is missing" do
-      assert Check.run(app_var(:a_check, :runtime_check, :missing_key)) == :error
+      assert Check.run(app_var(:a_check, :runtime_check, :missing_key)) ==
+               {:error, "Key missing_key not found in app config for runtime_check"}
     end
 
     test "fails when the value is nil" do
-      assert Check.run(app_var(:a_check, :runtime_check, :nil_key)) == :error
+      assert Check.run(app_var(:a_check, :runtime_check, :nil_key)) ==
+               {:error, "Value for key nil_key is nil in app config for runtime_check"}
     end
 
     test "fails when the key path is missing" do
-      assert Check.run(app_var(:a_check, :runtime_check, [:keys, :not_a_key, :no])) == :error
+      assert Check.run(app_var(:a_check, :runtime_check, [:keys, :not_a_key, :no])) ==
+               {:error, "Key path [:not_a_key, :no] in key keys is missing or nil"}
     end
 
     test "fails when the key path is nil" do
-      assert Check.run(app_var(:a_check, :runtime_check, [:nil_key_path, :key])) == :error
+      assert Check.run(app_var(:a_check, :runtime_check, [:nil_key_path, :key])) ==
+               {:error, "Key path [:key] in key nil_key_path is missing or nil"}
     end
 
     test "fails when the value is empty and it's rejected" do
-      assert Check.run(app_var(:a_check, :runtime_check, :empty_key, reject: [""])) == :error
+      assert Check.run(app_var(:a_check, :runtime_check, :empty_key, reject: [""])) ==
+               {:error, ~s(Value "" is not allowed for :empty_key)}
     end
 
     test "fails when the value is empty with keys and it's rejected" do
       assert Check.run(app_var(:a_check, :runtime_check, [:empty_key_path, :key], reject: [""])) ==
-               :error
+               {:error, ~s(Value "" is not allowed for [:empty_key_path, :key])}
     end
   end
 end

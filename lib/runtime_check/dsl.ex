@@ -193,7 +193,7 @@ defmodule RuntimeCheck.DSL do
     rejected = opts[:reject] || []
 
     if value in rejected do
-      {:error, "Value #{value} is not allowed for #{inspect(key_or_keys)}"}
+      {:error, "Value #{inspect(value)} is not allowed for #{inspect(key_or_keys)}"}
     else
       :ok
     end

@@ -3,7 +3,7 @@ defmodule RuntimeCheck.Check do
   Represents a system check.
 
   - name: The name of the check, an atom or string
-  - checker: The function executed for the check, can be nil. It's a if the function returned `:ok`
+  - checker: The function executed for the check, can be nil. It's as if the function returned `:ok`
   - nested_checks: A list of `Check` that are verified only if the `checker` returned `:ok`
   """
 
@@ -14,8 +14,9 @@ defmodule RuntimeCheck.Check do
 
   @type checker :: (-> :ok | {:ok, term()} | :ignore | {:error, term()})
 
+  @type name :: atom() | String.t()
   @type t :: %__MODULE__{
-          name: atom() | String.t(),
+          name: name(),
           checker: checker() | nil,
           nested_checks: [t()] | nil
         }
@@ -23,7 +24,8 @@ defmodule RuntimeCheck.Check do
   @doc """
   Runs the given check(s). Logs the result of each check if `log` is true.
   """
-  @spec run(t() | [t()], non_neg_integer(), boolean()) :: :ok | :error
+  @spec run(t() | [t()], non_neg_integer(), boolean()) ::
+          {:ok, :ignored | %{name() => term()}} | {:error, %{name() => term()} | term()}
   def run(check_or_checks, depth \\ 0, log \\ false)
 
   def run(%__MODULE__{} = check, depth, log) do
@@ -36,25 +38,23 @@ defmodule RuntimeCheck.Check do
 
       :ignore ->
         log(check, :warning, "ignored")
-        :ok
+        {:ok, :ignored}
 
       {:error, reason} ->
         log(check, :error, "failed. Reason: #{format_error(reason)}")
-        :error
+        {:error, reason}
     end
   end
 
   def run(checks, depth, log) when is_list(checks) do
-    results =
-      Enum.map(checks, fn check ->
-        run(check, depth, log)
-      end)
-
-    if Enum.any?(results, fn res -> res == :error end) do
-      :error
-    else
-      :ok
-    end
+    Enum.reduce(checks, {:ok, %{}}, fn check, {ok, acc} ->
+      case run(check, depth, log) do
+        {:ok, :ignored} -> {ok, Map.put(acc, check.name, :ignored)}
+        {:ok, nested_acc} when nested_acc == %{} -> {ok, acc}
+        {:ok, nested_acc} -> {ok, Map.put(acc, check.name, nested_acc)}
+        {:error, nested_acc} -> {:error, Map.put(acc, check.name, nested_acc)}
+      end
+    end)
   end
 
   @spec execute_checker(nil | checker()) :: :ok | :ignore | {:error, term()}
@@ -72,23 +72,23 @@ defmodule RuntimeCheck.Check do
       {:error, {kind, value, __STACKTRACE__}}
   end
 
-  @spec run_nested_checks(t()) :: :ok | :error
+  @spec run_nested_checks(t()) :: {:ok, %{name() => term()}} | {:error, %{name() => term()}}
   defp run_nested_checks(%__MODULE__{nested_checks: []} = check) do
     log(check, :info, "passed")
-    :ok
+    {:ok, %{}}
   end
 
   defp run_nested_checks(%__MODULE__{nested_checks: [_ | _], depth: depth} = check) do
     log(check, :info, "")
 
     case run(check.nested_checks, depth + 1, check.log) do
-      :ok ->
+      {:ok, _} = res ->
         log(check, :info, "passed")
-        :ok
+        res
 
-      :error ->
+      {:error, _reasons} = error ->
         log(check, :error, "failed")
-        :error
+        error
     end
   end
 
