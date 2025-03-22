@@ -150,6 +150,9 @@ defmodule RuntimeCheck.DSL do
   If it's a list, the first element is used as key for Application.fetch_env/2 and the rest looked up using get_in, so the value should implement the Access protocol.
 
   The check fails when the config is not present or results in a nil value.
+
+  A list of invalid values can be passed as `opts` like `reject: [""]`. If value of the variable
+  is any of the list, the check fails.
   """
   @spec app_var(atom(), atom(), atom() | [atom()], Keyword.t()) :: Check.t()
   def app_var(name, otp_app, key_or_keys, opts \\ [])

@@ -1,14 +1,20 @@
 defmodule RuntimeCheck.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/mono-colombia/ex_runtime_check"
+  @version "0.1.0"
+
   def project do
     [
       app: :runtime_check,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      description: "Run a set of system checks on application start up",
+      package: package(),
+      docs: docs(),
       dialyzer: [
         plt_add_apps: [
           :fun_with_flags,
@@ -34,7 +40,24 @@ defmodule RuntimeCheck.MixProject do
   defp deps do
     [
       {:fun_with_flags, "~> 1.12", optional: true, runtime: false},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      maintainers: ["Jhon Pedroza"],
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "RuntimeCheck",
+      source_ref: "v#{@version}",
+      source_url: @source_url
     ]
   end
 end

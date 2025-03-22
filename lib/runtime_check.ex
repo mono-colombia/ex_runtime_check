@@ -1,10 +1,9 @@
 defmodule RuntimeCheck do
-  @moduledoc """
-  A GenServer to run a set of system checks on application start up.
-
-  The process is normally run after the rest of the children in the supervisor, so processes like Ecto and FunWithFlags are available.
-  Additionally, it is not actually kept in the supervision tree as `init/1` returns `:ignore` when the checks succeed.
-  """
+  @external_resource "README.md"
+  @moduledoc "README.md"
+             |> File.read!()
+             |> String.split("<!-- MDOC !-->")
+             |> Enum.fetch!(1)
 
   require Logger
 
@@ -39,7 +38,14 @@ defmodule RuntimeCheck do
     end
   end
 
+  @doc """
+  Whether the checks should run on startup.
+  """
   @callback run?() :: boolean()
+
+  @doc """
+  A list of checks to run.
+  """
   @callback checks() :: [RuntimeCheck.Check.t()]
 
   @doc false
