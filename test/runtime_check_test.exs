@@ -1,5 +1,8 @@
 defmodule RuntimeCheckTest do
   use ExUnit.Case, async: true
+
+  import ExUnit.CaptureLog
+
   doctest RuntimeCheck
 
   defmodule Checks do
@@ -50,6 +53,38 @@ defmodule RuntimeCheckTest do
 
       assert_received :ran_check
       assert_received :ran_nested_check
+    end
+  end
+
+  describe "init/1" do
+    test "runs checks and succeeds" do
+      log =
+        capture_log(fn ->
+          assert RuntimeCheck.init(Checks) == :ignore
+        end)
+
+      assert_received :ran_check
+      assert_received :ran_nested_check
+
+      assert log =~ "[RuntimeCheck] starting..."
+      assert log =~ "[RuntimeCheck] test: passed"
+      assert log =~ "[RuntimeCheck] done"
+    end
+
+    test "runs checks and fails" do
+      Process.put(:fail_check?, true)
+
+      log =
+        capture_log(fn ->
+          assert RuntimeCheck.init(Checks) == {:stop, :runtime_check_failed}
+        end)
+
+      assert_received :ran_check
+      assert_received :ran_nested_check
+
+      assert log =~ "[RuntimeCheck] starting..."
+      assert log =~ "[RuntimeCheck] test: passed"
+      assert log =~ "[RuntimeCheck] some checks failed!"
     end
   end
 end

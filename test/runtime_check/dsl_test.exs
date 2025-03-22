@@ -14,7 +14,7 @@ defmodule RuntimeCheck.DSLTest do
 
   defp ok_subcheck1 do
     send(self(), :ran_subcheck1)
-    :ok
+    {:ok, 5}
   end
 
   defp ok_subcheck2 do

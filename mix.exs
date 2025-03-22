@@ -15,6 +15,8 @@ defmodule RuntimeCheck.MixProject do
       description: "Run a set of system checks on application start up",
       package: package(),
       docs: docs(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: ["coveralls.html": :test],
       dialyzer: [
         plt_add_apps: [
           :fun_with_flags,
@@ -41,6 +43,7 @@ defmodule RuntimeCheck.MixProject do
     [
       {:fun_with_flags, "~> 1.12", optional: true, runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.18", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
   end
