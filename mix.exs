@@ -52,7 +52,10 @@ defmodule RuntimeCheck.MixProject do
     [
       licenses: ["MIT"],
       maintainers: ["Jhon Pedroza"],
-      links: %{"GitHub" => @source_url}
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => @source_url <> "/blob/master/CHANGELOG.md"
+      }
     ]
   end
 
@@ -60,7 +63,8 @@ defmodule RuntimeCheck.MixProject do
     [
       main: "RuntimeCheck",
       source_ref: "v#{@version}",
-      source_url: @source_url
+      source_url: @source_url,
+      extras: ["CHANGELOG.md"]
     ]
   end
 end
