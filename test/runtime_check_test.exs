@@ -37,7 +37,7 @@ defmodule RuntimeCheckTest do
 
   describe "run/1" do
     test "runs checks and succeeds" do
-      assert RuntimeCheck.run(Checks) == {:ok, %{nested: %{test_ignored: :ignored}}}
+      assert RuntimeCheck.run(Checks, log: false) == {:ok, %{nested: %{test_ignored: :ignored}}}
       assert_received :ran_check
       assert_received :ran_nested_check
     end
@@ -45,7 +45,7 @@ defmodule RuntimeCheckTest do
     test "runs checks and fails" do
       Process.put(:fail_check?, true)
 
-      assert RuntimeCheck.run(Checks) ==
+      assert RuntimeCheck.run(Checks, log: false) ==
                {:error, %{nested: %{test_ignored: :ignored, maybe_fails: "the check did fail"}}}
 
       assert_received :ran_check

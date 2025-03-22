@@ -32,9 +32,9 @@ defmodule RuntimeCheck do
         RuntimeCheck.init(__MODULE__)
       end
 
-      @spec run() :: {:ok, map()} | {:error, map()}
-      def run do
-        RuntimeCheck.run(__MODULE__)
+      @spec run([{:log, boolean()}]) :: {:ok, map()} | {:error, map()}
+      def run(opts \\ []) do
+        RuntimeCheck.run(__MODULE__, opts)
       end
     end
   end
@@ -75,20 +75,24 @@ defmodule RuntimeCheck do
   }
   ```
 
+  By default, the result will be logged, but it can be disabled by passing `log: false`.
+
   Use the module directly when starting in a supervisor tree. See the moduledocs for
   `RuntimeCheck`.
   """
-  @spec run(module()) :: {:ok, map()} | {:error, map()}
-  def run(module) do
-    Logger.info("RuntimeCheck] starting...")
+  @spec run(module(), [{:log, boolean()}]) :: {:ok, map()} | {:error, map()}
+  def run(module, opts \\ []) do
+    log? = Keyword.get(opts, :log, true)
 
-    case Check.run(module.checks(), 0, true) do
+    if log?, do: Logger.info("[RuntimeCheck] starting...")
+
+    case Check.run(module.checks(), 0, log?) do
       {:ok, _} = res ->
-        Logger.info("[RuntimeCheck] done")
+        if log?, do: Logger.info("[RuntimeCheck] done")
         res
 
       {:error, _} = res ->
-        Logger.error("[RuntimeCheck] some checks failed!")
+        if log?, do: Logger.error("[RuntimeCheck] some checks failed!")
         res
     end
   end
