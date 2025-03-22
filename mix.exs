@@ -8,7 +8,14 @@ defmodule RuntimeCheck.MixProject do
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        plt_add_apps: [
+          :fun_with_flags,
+          :mix
+        ],
+        list_unused_filters: true
+      ]
     ]
   end
 
@@ -26,7 +33,8 @@ defmodule RuntimeCheck.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:fun_with_flags, "~> 1.12", optional: true, runtime: false}
+      {:fun_with_flags, "~> 1.12", optional: true, runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
   end
 end
